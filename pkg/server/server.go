@@ -15,6 +15,7 @@ type Server struct {
 func CreateServer(addr string, static string) *Server {
 	r := chi.NewRouter()
 
+	api.InitAuth()
 	api.Init(r)
 	r.Handle("/*", http.FileServer(http.Dir(static)))
 

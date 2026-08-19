@@ -6,13 +6,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AxlLove/go_final_project/pkg/db"
 )
 
 func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 	if repeat == "" {
 		return "", errors.New("repeat is required")
 	}
-	d, err := time.Parse("20060102", dstart)
+	d, err := time.Parse(db.DateFormat, dstart)
 	if err != nil {
 		return "", err
 	}
@@ -27,7 +29,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 				break
 			}
 		}
-		return d.Format("20060102"), nil
+		return d.Format(db.DateFormat), nil
 	case "d":
 		if len(parts) < 2 {
 			return "", errors.New("need at least two parts")
@@ -48,7 +50,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 			}
 		}
 
-		return d.Format("20060102"), nil
+		return d.Format(db.DateFormat), nil
 	case "w":
 		if len(parts) < 2 {
 			return "", errors.New("w: не указаны дни недели")
@@ -71,7 +73,7 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 				break
 			}
 		}
-		return d.Format("20060102"), nil
+		return d.Format(db.DateFormat), nil
 	default:
 		return "", errors.New("invalid repeat format")
 	}
@@ -87,7 +89,7 @@ func nextDateHandler(w http.ResponseWriter, r *http.Request) {
 	if nowStr == "" {
 		now = time.Now()
 	} else {
-		now, err = time.Parse("20060102", nowStr)
+		now, err = time.Parse(db.DateFormat, nowStr)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

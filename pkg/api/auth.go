@@ -11,20 +11,22 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func secret() []byte {
-	pass := os.Getenv("TODO_PASSWORD")
-	h := sha256.Sum256([]byte(pass))
-	return h[:]
-}
+var (
+	password  string
+	jwtSecret []byte
+	jwtHash   string
+)
 
-func passHash() string {
-	pass := os.Getenv("TODO_PASSWORD")
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(pass)))
+func InitAuth() {
+	password = os.Getenv("TODO_PASSWORD")
+	h := sha256.Sum256([]byte(password))
+	jwtSecret = h[:]
+	jwtHash = fmt.Sprintf("%x", h)
 }
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if os.Getenv("TODO_PASSWORD") == "" {
+		if password == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -39,7 +41,7 @@ func authMiddleware(next http.Handler) http.Handler {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("неожиданный метод подписи")
 			}
-			return secret(), nil
+			return jwtSecret, nil
 		})
 		if err != nil || !token.Valid {
 			http.Error(w, "Authentification required", http.StatusUnauthorized)
@@ -47,7 +49,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || claims["hash"] != passHash() {
+		if !ok || claims["hash"] != jwtHash {
 			http.Error(w, "Authentification required", http.StatusUnauthorized)
 			return
 		}
@@ -61,23 +63,23 @@ func signInHandle(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, err.Error())
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if req.Password != os.Getenv("TODO_PASSWORD") {
-		writeError(w, "Неверный пароль")
+	if req.Password != password {
+		writeError(w, http.StatusUnauthorized, "Неверный пароль")
 		return
 	}
 
 	claims := jwt.MapClaims{
-		"hash": passHash(),
+		"hash": jwtHash,
 		"exp":  time.Now().Add(8 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(secret())
+	signed, err := token.SignedString(jwtSecret)
 	if err != nil {
-		writeError(w, err.Error())
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 

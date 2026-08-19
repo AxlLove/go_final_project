@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -30,7 +32,7 @@ func main() {
 	s := server.CreateServer(":"+port, StaticDir)
 
 	log.Printf("Starting server on :%s port", port)
-	if err := s.HTTP.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	if err = s.HTTP.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Println(err)
 	}
 }

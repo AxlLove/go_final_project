@@ -29,7 +29,7 @@ func GetTasks(limit int, search string) ([]*Task, error) {
 		t, _ := time.Parse("02.01.2006", search)
 		rows, err = DB.Query(
 			`SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date LIMIT :limit`,
-			sql.Named("date", t.Format("20060102")),
+			sql.Named("date", t.Format(DateFormat)),
 			sql.Named("limit", limit),
 		)
 	default:
@@ -53,6 +53,10 @@ func GetTasks(limit int, search string) ([]*Task, error) {
 			return nil, err
 		}
 		tasks = append(tasks, &t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return tasks, nil
